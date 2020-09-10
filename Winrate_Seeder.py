@@ -121,7 +121,7 @@ def Win_Rate(con, player_id, zeros):
     return [Win_Rate, All, zeros] 
 
 #-----------------------------------------------------------------------------#
-def main(API_Key, Phase_Id, Event_Name):
+def main(API_Key, Phase_Id, Event_Name, EXCEL):
     'Runs all helper functions to produce seeding excel spreadsheet'
     
     # Closes All Excel Files
@@ -207,6 +207,6 @@ def main(API_Key, Phase_Id, Event_Name):
     
 ###############################################################################    
 if __name__ == "__main__":
-    main(API_Key, Phase_Id, Event_Name)
+    main(API_Key, Phase_Id, Event_Name, EXCEL)
 
 

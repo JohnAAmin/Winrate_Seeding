@@ -1,0 +1,11 @@
+"""
+External files to pip install:
+
+Graphclient is to connect with smash.gg API
+Pywin32 is to prompt/close excel/csv files at startup
+    
+"""
+
+pip install graphqlclient
+
+pip install pywin32
