@@ -1,5 +1,8 @@
 # Files and Folders to Ignore
 __pycache__/
-test/
+
+# Smash.GG Key
 key/auth.yaml
-seedings/*.csv
+
+# Seedings
+seeding/*.csv
