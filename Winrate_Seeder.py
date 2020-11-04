@@ -1,8 +1,8 @@
 
 """
                                 Winrate Seeder 
-@authors: J4m, L4st
-@version: 0.5
+@authors: J4m
+@version: 0.6
 
 This code query's a Smash.gg Tournament corresponding to a given Phase Id.
 It takes all the entrants in that phase, grabbing Seed Number, Seeding Id,
@@ -14,49 +14,56 @@ and Total Set counts.
 Finally it then Exports all this data as an Excel Spreadsheet. 
 
 USER INPUTS:
-    API_Key    [str] - This takes your smash.gg API key
     Phase_Id   [int] - The Phase Id of Players Needed to be seeded
     Event_Name [str] - The Name of the event (for file naming purposes)
-    EXCEL     [bool] - writes in Excel format (CSV format if false)
 """
 
 ###############################################################################
 # USER INPUTS
 
-API_Key = '#############################'
-Event_Name = 'Output_File_Name'
-Phase_Id = 1000
-EXCEL = False
+Phase_Id = 872314
+Event_Name = 'SSG4'
 
 ###############################################################################
 # IMPORTS
 
-import os
+import os,sys,yaml
 import time as t
 import pandas as pd
 import json as js
 import sqlite3
 from graphqlclient import GraphQLClient as GQL
-from win32com.client import Dispatch
 
 ###############################################################################
 # DEFS
 
-def Smash_Api(API_Key):
-    'Starts the Graphql API Client'
+def Smash_Api(*path):
+    ''' Opens Auth.yaml and starts GraphQL client '''
+    if not path:
+        path = os.getcwd() + '/key'
+    elif len(path) == 1:
+        path = path[0]
+    else:
+        print('ERROR: Too many arguments')
+        sys.exit(0)
+    # Finds and reads auth.yaml file
+    x = path + '/auth.yaml'
+    with open(x) as file:
+        data = yaml.load(file, Loader=yaml.FullLoader)
+        authToken = data.get('authkey')
     
     # Starts GraphQL file
     client = GQL('https://api.smash.gg/gql/' + 'alpha')
-    client.inject_token('Bearer ' + API_Key)
+    client.inject_token('Bearer ' + authToken)
+    
     return client
-
 #-----------------------------------------------------------------------------#
 
 def Tourney_Players(client, phaseId):
     'Collects player seeding information and returns a Dataframe of entrants'
     
     # Setting Up Dataframe
-    cols = ['Phase Seed','Seed ID','Player ID','Player']
+    cols = ['Seed ID','Player ID','Phase Seed','Player']
     seeding_df = pd.DataFrame(columns=cols)
     
     # Iterate through API request
@@ -89,7 +96,7 @@ def Tourney_Players(client, phaseId):
         Seed_Num = player_list[i]['seedNum']
         Player_Id = player_list[i]['entrant']['participants'][0]['player']['id']
         Gamer_Tag = player_list[i]['entrant']['participants'][0]['player']['gamerTag']
-        seeding_df.loc[i] = [Seed_Num, Seed_Id, Player_Id, Gamer_Tag]
+        seeding_df.loc[i] = [Seed_Id, Player_Id, Seed_Num, Gamer_Tag]
         
     return seeding_df
 
@@ -121,25 +128,19 @@ def Win_Rate(con, player_id, zeros):
     return [Win_Rate, All, zeros] 
 
 #-----------------------------------------------------------------------------#
-def main(API_Key, Phase_Id, Event_Name, EXCEL):
-    'Runs all helper functions to produce seeding excel spreadsheet'
+def main(Phase_Id, Event_Name):
+    'Runs all helper functions to produce seeding csv spreadsheet'
     
-    # Closes All Excel Files
-    Seeding_File = Event_Name + '_Seeding.xlsx'
-    xl = Dispatch('Excel.Application')
-    map(lambda book: book.Close(False), xl.Workbooks)
-    xl.Quit()    
-    
-    # Starts API client and collects players from Phase Id
+# Starts API client and collects players from Phase Id
     print("Collecting Entrants in Phase")
-    client = Smash_Api(API_Key)
+    client = Smash_Api()
     seeding_df = Tourney_Players(client, Phase_Id)
     
-    # Specifies and opens Smashdata SQLite database
+# Specifies and opens Smashdata SQLite database
     db = 'ultimate_player_database.db'
     con= sqlite3.connect(db)
     
-    # Adds Win Rate and Set Count to Dataframe
+# Adds Win Rate and Set Count to Dataframe
     print("Collecting Win Rates and Set Counts")
     t0 = t.time()
     count = 0
@@ -159,16 +160,17 @@ def main(API_Key, Phase_Id, Event_Name, EXCEL):
         
     con.close()
     print('Win Rates and Set Counts Collected')
-    # Calculates Stats
+
+# Calculates Stats
     t1 = t.time()
     tx = round((t1-t0),2)
-    rate = round((count/tx),3)
+    rate = round((tx/count),3)
     
     print("""
     - - - - - - - - - - -
      Time: {} s
      Players Count: {}
-     Rate: {} Player/s
+     Rate: {} S/player
      Zeroes: {}
     - - - - - - - - - - -
      """.format(tx, count, rate, zeros))
@@ -176,37 +178,21 @@ def main(API_Key, Phase_Id, Event_Name, EXCEL):
     seeding_df = seeding_df.sort_values(by=['Win Rate', 'Sets'],
                  ascending=[False, False]).reset_index(drop=True)
     
-    
-    if EXCEL:
-        # Exports and Opens Excel Spreadsheet
-        try:
-            Seeding_File = Event_Name + '_Seeding.xlsx'
-            writer = pd.ExcelWriter(Seeding_File, engine='xlsxwriter')    
-            seeding_df.to_excel(Seeding_File, index=False)
-            writer.save()
-            os.startfile(Seeding_File)
-        except PermissionError:
-            print("Permission Error: -> Printing Temporary Name")
-            Seeding_File = Event_Name + '_Seeding.xlsx'
-            writer = pd.ExcelWriter(Seeding_File, engine='xlsxwriter')    
-            seeding_df.to_excel(Seeding_File, index=False)
-            writer.save()
-            os.startfile(Seeding_File)
-    else:
-        # Exports and Opens CSV Spreadsheet
-        try:
-            Seeding_File = Event_Name + '_Seeding.csv'
-            seeding_df.to_csv(Seeding_File, index=False)
-            os.startfile(Seeding_File)
-        except PermissionError:
-            print("Permission Error: -> Printing Temporary Name")
-            Seeding_File = 'temp-' + Event_Name + '_Seeding.csv'
-            seeding_df.to_csv(Seeding_File, index=False)
-            os.startfile(Seeding_File)
+# Exports and Opens CSV Spreadsheet
+    folder = os.getcwd() + '\\seeding\\'
+    try:
+        Seeding_File =  folder + Event_Name + '_Seeding.csv'
+        seeding_df.to_csv(Seeding_File, index=False)
+        os.startfile(Seeding_File)
+    except PermissionError:
+        print("Permission Error: -> Printing Temporary Name")
+        Seeding_File = folder + 'temp-' + Event_Name + '_Seeding.csv'
+        seeding_df.to_csv(Seeding_File, index=False)
+        os.startfile(Seeding_File)
     print('Task Complete')
     
 ###############################################################################    
 if __name__ == "__main__":
-    main(API_Key, Phase_Id, Event_Name, EXCEL)
+    main(Phase_Id, Event_Name)
 
 
