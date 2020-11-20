@@ -4,5 +4,9 @@ __pycache__/
 # Smash.GG Key
 key/auth.yaml
 
-# Seedings
-seeding/*.csv
+# Folders
+seeding/.*csv
+testing/
+
+# Smashdata.GG Database
+*.db
