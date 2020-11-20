@@ -2,7 +2,7 @@
 """
                                 Winrate Seeder 
 @authors: J4m
-@version: 0.6
+@version: 1.0
 
 This code query's a Smash.gg Tournament corresponding to a given Phase Id.
 It takes all the entrants in that phase, grabbing Seed Number, Seeding Id,
@@ -21,8 +21,8 @@ USER INPUTS:
 ###############################################################################
 # USER INPUTS
 
-Phase_Id = 872314
-Event_Name = 'SSG4'
+Phase_Id = 881382
+Event_Name = 'Peak_65'
 
 ###############################################################################
 # IMPORTS
@@ -93,7 +93,7 @@ def Tourney_Players(client, phaseId):
     # Fills in the Dataframe
     for i in range(bracket_size):
         Seed_Id = player_list[i]['id']
-        Seed_Num = player_list[i]['seedNum']
+        Seed_Num = '' #player_list[i]['seedNum']
         Player_Id = player_list[i]['entrant']['participants'][0]['player']['id']
         Gamer_Tag = player_list[i]['entrant']['participants'][0]['player']['gamerTag']
         seeding_df.loc[i] = [Seed_Id, Player_Id, Seed_Num, Gamer_Tag]
@@ -102,8 +102,10 @@ def Tourney_Players(client, phaseId):
 
 #-----------------------------------------------------------------------------#
 
-def Win_Rate(con, player_id, zeros):
+def Win_Rate(con, player_id, tag, zeros):
     'Searches Smashdata Database for Player Set Win-Rate'
+    
+    base = 'https://smashdata.gg/smash/ultimate/player/'
     
     # Searches Smashdata SQLite database
     cur = con.cursor()    
@@ -121,11 +123,41 @@ def Win_Rate(con, player_id, zeros):
     if All == 0:
         
         Win_Rate = 0
+        Link = '-'
         zeros += 1
     else:
         Win_Rate = round((Win/All),3)
+        x = tag.replace(' ', '%20') #fixes spaces in names
+        Link = base + x + '?id=' + str(player_id)
     
-    return [Win_Rate, All, zeros] 
+    return [Win_Rate, All, Link, zeros] 
+#-----------------------------------------------------------------------------#
+def Update_Smashgg(update_bracket, client, phaseId, seeds):
+        # Updates the Smash.gg player seeds
+    if update_bracket:
+        print('Seeds Assigned')
+        print('Updating Smash.gg:')
+        seedMapping = []
+        for i in range(len(seeds)):
+            seedId = str(seeds.loc[i,'Seed_Id'])
+            seedNum = str(seeds.loc[i,'Seed_Num'])
+            seedMapping.append({'seedId': seedId, 'seedNum': seedNum})
+        
+        result = client.execute('''
+                 mutation UpdatePhaseSeeding 
+                 ($phaseId: ID!, $seedMapping: [UpdatePhaseSeedInfo]!) {
+                 updatePhaseSeeding (phaseId: $phaseId, seedMapping: $seedMapping) {
+                     id}}''',{"phaseId": phaseId, "seedMapping": seedMapping})
+        
+        resData = js.loads(result)
+        if 'errors' in resData:
+            print('Error:')
+            print(resData['errors'])
+        else:
+            print('Success!')
+    else:
+        print('Seeds Assigned')
+        print('NOT updating smash.gg')
 
 #-----------------------------------------------------------------------------#
 def main(Phase_Id, Event_Name):
@@ -146,13 +178,17 @@ def main(Phase_Id, Event_Name):
     count = 0
     zeros = 0
     seeding_df['Win Rate'] = '-'
-    seeding_df['Sets'] = '-' 
-       
+    seeding_df['Sets'] = '-'
+    
+    seeding_df['Link'] = '-'
+    
     for i in range(len(seeding_df)):
+        gamer_tag = seeding_df.loc[i, 'Player']
         player_id = seeding_df.loc[i, 'Player ID']
-        wr, sets, zeros = Win_Rate(con, player_id, zeros)
+        wr, sets, link, zeros = Win_Rate(con, player_id, gamer_tag, zeros)
         seeding_df.loc[i, 'Win Rate'] = wr
         seeding_df.loc[i, 'Sets'] = sets
+        seeding_df.loc[i, 'Link'] = link
         count += 1
         # Progress Notes
         if (count % 10) == 0:
