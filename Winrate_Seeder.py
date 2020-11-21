@@ -14,21 +14,23 @@ and Total Set counts.
 Finally it then Exports all this data as an Excel Spreadsheet. 
 
 USER INPUTS:
-    Phase_Id   [int] - The Phase Id of Players Needed to be seeded
-    Event_Name [str] - The Name of the event (for file naming purposes)
+    Phase_Id         [int]  - The Phase Id of Players Needed to be seeded
+    Event_Name       [str]  - The Name of the event (for file naming purposes)
+    Update_Bracket   [bool] - Updates seeds on Smash.GG automatically
 """
 
 ###############################################################################
 # USER INPUTS
 
-Phase_Id = 881382
-Event_Name = 'Peak_65'
-
+Phase_Id = 882778           # number 88####
+Event_Name = 'SSG_13'       # 'Your File Name' 
+Update_Bracket = True      # True or False
 ###############################################################################
 # IMPORTS
 
 import os,sys,yaml
 import time as t
+import numpy as np
 import pandas as pd
 import json as js
 import sqlite3
@@ -132,16 +134,18 @@ def Win_Rate(con, player_id, tag, zeros):
     
     return [Win_Rate, All, Link, zeros] 
 #-----------------------------------------------------------------------------#
-def Update_Smashgg(update_bracket, client, phaseId, seeds):
+def UpdateGG(update_bracket, client, phaseId, seeds):
         # Updates the Smash.gg player seeds
     if update_bracket:
         print('Seeds Assigned')
         print('Updating Smash.gg:')
+        
+        seeds['Phase Seed'] = np.arange(1, len(seeds)+1)
         seedMapping = []
         for i in range(len(seeds)):
-            seedId = str(seeds.loc[i,'Seed_Id'])
-            seedNum = str(seeds.loc[i,'Seed_Num'])
-            seedMapping.append({'seedId': seedId, 'seedNum': seedNum})
+            seedId = str(seeds.loc[i,'Seed ID'])
+            phaseSeed = str(seeds.loc[i,'Phase Seed'])
+            seedMapping.append({'seedId': seedId, 'seedNum': phaseSeed})
         
         result = client.execute('''
                  mutation UpdatePhaseSeeding 
@@ -153,6 +157,7 @@ def Update_Smashgg(update_bracket, client, phaseId, seeds):
         if 'errors' in resData:
             print('Error:')
             print(resData['errors'])
+            print(phaseId)
         else:
             print('Success!')
     else:
@@ -205,14 +210,16 @@ def main(Phase_Id, Event_Name):
     print("""
     - - - - - - - - - - -
      Time: {} s
-     Players Count: {}
      Rate: {} S/player
-     Zeroes: {}
+     Player Count: {}
+     No Data: {}
     - - - - - - - - - - -
-     """.format(tx, count, rate, zeros))
+     """.format(tx, rate, count, zeros))
 
     seeding_df = seeding_df.sort_values(by=['Win Rate', 'Sets'],
                  ascending=[False, False]).reset_index(drop=True)
+    
+    UpdateGG(Update_Bracket, client, Phase_Id, seeding_df)
     
 # Exports and Opens CSV Spreadsheet
     folder = os.getcwd() + '\\seeding\\'
