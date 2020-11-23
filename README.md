@@ -9,11 +9,16 @@ tournaments.
 
 ### Requirements
 #### Software
-- Python 3.7
+- Python 3.7+
+
+ **Key packages**
+  - Numpy == 1.19.1
   - Pandas >= 1.1.1
-  - sqlite >= 3.33.0
   - graphqlclient >= 0.2.4
   - yaml >= 0.2.5
+
+ **Other packages**    
+  - sqlite >= 3.33.0
   - json >= 2.0.9
 
 #### Smash.gg Info
