@@ -29,13 +29,13 @@ tournaments.
 ### Winrate Seeder Setup:
 
 1. Clone or download this repository.
-1. Download and install Python 3.7 or greater and the required libraries. For help, see *Python Setup Guide* below
-1. Download the Smashdata.gg Player Database (updated ~biweekly) and place in repository root folder
-1. Request and generate a smash.gg Token (Do not lose your key)
-1. Add your key to the **auth.yaml** file in the **key** folder
-1. Open **Winrate_Seeder.py** and enter a tourney *Phase_Id* and *Event_Name* in the *User Inputs* section
-1. Run the code. This will generate a .csv file in the **seeding** folder
-1. Upload the seeds [here](https://gg-seed-upload.herokuapp.com/)
+2. Download and install Python 3.7 or greater and the required libraries. For help, see *Python Setup Guide* below
+3. Download the Smashdata.gg Player Database (updated ~biweekly) and place in repository root folder
+4. Request and generate a smash.gg Token (Do not lose your key)
+5. Add your key to the **auth.yaml** file in the **key** folder
+6. Open **Winrate_Seeder.py** and enter a tourney *Phase_Id* and *Event_Name* in the *User Inputs* section
+7. Run the code. This will generate a .csv file in the **seeding** folder
+8. Use [Seed Uploader](https://gg-seed-upload.herokuapp.com/) to upload seeds
 
 ***
 
@@ -49,7 +49,7 @@ I recommend [Sublime Text 3](https://www.sublimetext.com/3) for the text editor.
   - Open Command Prompt and type "python".
     - **If you don't have python:** This should open the Microsoft Windows Store to the python app. Download it.
     - **If you have python:** A python terminal should open in the Command Prompt.
-1. Install Packages:
+2. Install Packages:
   - Open a new command prompt or type "quit()" to exit python terminal
   - Type "pip help" to verify you have pip. This should open a command list
   - Install packages by typing:
@@ -57,7 +57,7 @@ I recommend [Sublime Text 3](https://www.sublimetext.com/3) for the text editor.
       - "pip install **pandas**"
       - "pip install **graphqlclient**"
       - "pip install **pyyaml**"
-1. Install Sublime Text 3
+3. Install Sublime Text 3
   - Install Sublime 3
   - Go to Tools > Build System and select Python
   - Test python runs through Sublime Text

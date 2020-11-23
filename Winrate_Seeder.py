@@ -1,17 +1,17 @@
 
 """
-                                Winrate Seeder 
+                                Winrate Seeder
 @authors: J4m
 @version: 1.0
 
 This code query's a Smash.gg Tournament corresponding to a given Phase Id.
 It takes all the entrants in that phase, grabbing Seed Number, Seeding Id,
-Player Id, and Gamer tag. 
+Player Id, and Gamer tag.
 
 The code then queries the Smashdata SQLite database to obtain player Win Rates
-and Total Set counts. 
+and Total Set counts.
 
-Finally it then Exports all this data as an Excel Spreadsheet. 
+Finally it then Exports all this data as an Excel Spreadsheet.
 
 USER INPUTS:
     Phase_Id         [int]  - The Phase Id of Players Needed to be seeded
@@ -23,8 +23,8 @@ USER INPUTS:
 # USER INPUTS
 
 Phase_Id = 882778           # number 88####
-Event_Name = 'SSG_13'       # 'Your File Name' 
-Update_Bracket = True      # True or False
+Event_Name = 'SSG_13'       # 'Your File Name'
+Update_Bracket = False      # True or False
 ###############################################################################
 # IMPORTS
 
@@ -53,45 +53,45 @@ def Smash_Api(*path):
     with open(x) as file:
         data = yaml.load(file, Loader=yaml.FullLoader)
         authToken = data.get('authkey')
-    
+
     # Starts GraphQL file
     client = GQL('https://api.smash.gg/gql/' + 'alpha')
     client.inject_token('Bearer ' + authToken)
-    
+
     return client
 #-----------------------------------------------------------------------------#
 
 def Tourney_Players(client, phaseId):
     'Collects player seeding information and returns a Dataframe of entrants'
-    
+
     # Setting Up Dataframe
     cols = ['Seed ID','Player ID','Phase Seed','Player']
     seeding_df = pd.DataFrame(columns=cols)
-    
+
     # Iterate through API request
     running = True
     page = 1
     player_list = []
-    
+
     while running:
         standings = client.execute('''
                     query PhaseSeeds($phaseId: ID!, $page: Int!) {
                     phase(id:$phaseId) {seeds(
                     query:{perPage: 256, page:$page})
                     {pageInfo {total} nodes {
-                    id seedNum entrant {participants 
+                    id seedNum entrant {participants
                     {player{gamerTag id}}}}}}}
-                    ''',{"phaseId": phaseId, "page": page})         
-        
+                    ''',{"phaseId": phaseId, "page": page})
+
         standingsData = js.loads(standings)
         players = standingsData['data']['phase']['seeds']['nodes']
-        if not players:    
+        if not players:
             running = False
         else:
             player_list += players
-            page += 1    
+            page += 1
     bracket_size = len(player_list)
-    
+
     # Fills in the Dataframe
     for i in range(bracket_size):
         Seed_Id = player_list[i]['id']
@@ -99,31 +99,31 @@ def Tourney_Players(client, phaseId):
         Player_Id = player_list[i]['entrant']['participants'][0]['player']['id']
         Gamer_Tag = player_list[i]['entrant']['participants'][0]['player']['gamerTag']
         seeding_df.loc[i] = [Seed_Id, Player_Id, Seed_Num, Gamer_Tag]
-        
+
     return seeding_df
 
 #-----------------------------------------------------------------------------#
 
 def Win_Rate(con, player_id, tag, zeros):
     'Searches Smashdata Database for Player Set Win-Rate'
-    
+
     base = 'https://smashdata.gg/smash/ultimate/player/'
-    
+
     # Searches Smashdata SQLite database
-    cur = con.cursor()    
-    A = '''SELECT COUNT(*) FROM 'sets' WHERE (p1_id={} OR p2_id={}) 
+    cur = con.cursor()
+    A = '''SELECT COUNT(*) FROM 'sets' WHERE (p1_id={} OR p2_id={})
            AND (p1_score>=0 AND p2_score>=0)'''.format(player_id, player_id)
-    B = '''SELECT COUNT(*) FROM 'sets' WHERE (winner_id={}) 
+    B = '''SELECT COUNT(*) FROM 'sets' WHERE (winner_id={})
            AND (p1_score>=0 AND p2_score>=0)'''.format(player_id)
-    
+
     cur.execute(A)
     All = cur.fetchone()[0]
     cur.execute(B)
     Win = cur.fetchone()[0]
-    
+
     # Calculates Win Rate
     if All == 0:
-        
+
         Win_Rate = 0
         Link = '-'
         zeros += 1
@@ -131,28 +131,28 @@ def Win_Rate(con, player_id, tag, zeros):
         Win_Rate = round((Win/All),3)
         x = tag.replace(' ', '%20') #fixes spaces in names
         Link = base + x + '?id=' + str(player_id)
-    
-    return [Win_Rate, All, Link, zeros] 
+
+    return [Win_Rate, All, Link, zeros]
 #-----------------------------------------------------------------------------#
 def UpdateGG(update_bracket, client, phaseId, seeds):
         # Updates the Smash.gg player seeds
     if update_bracket:
         print('Seeds Assigned')
         print('Updating Smash.gg:')
-        
+
         seeds['Phase Seed'] = np.arange(1, len(seeds)+1)
         seedMapping = []
         for i in range(len(seeds)):
             seedId = str(seeds.loc[i,'Seed ID'])
             phaseSeed = str(seeds.loc[i,'Phase Seed'])
             seedMapping.append({'seedId': seedId, 'seedNum': phaseSeed})
-        
+
         result = client.execute('''
-                 mutation UpdatePhaseSeeding 
+                 mutation UpdatePhaseSeeding
                  ($phaseId: ID!, $seedMapping: [UpdatePhaseSeedInfo]!) {
                  updatePhaseSeeding (phaseId: $phaseId, seedMapping: $seedMapping) {
                      id}}''',{"phaseId": phaseId, "seedMapping": seedMapping})
-        
+
         resData = js.loads(result)
         if 'errors' in resData:
             print('Error:')
@@ -167,16 +167,16 @@ def UpdateGG(update_bracket, client, phaseId, seeds):
 #-----------------------------------------------------------------------------#
 def main(Phase_Id, Event_Name):
     'Runs all helper functions to produce seeding csv spreadsheet'
-    
+
 # Starts API client and collects players from Phase Id
     print("Collecting Entrants in Phase")
     client = Smash_Api()
     seeding_df = Tourney_Players(client, Phase_Id)
-    
+
 # Specifies and opens Smashdata SQLite database
     db = 'ultimate_player_database.db'
     con= sqlite3.connect(db)
-    
+
 # Adds Win Rate and Set Count to Dataframe
     print("Collecting Win Rates and Set Counts")
     t0 = t.time()
@@ -184,9 +184,9 @@ def main(Phase_Id, Event_Name):
     zeros = 0
     seeding_df['Win Rate'] = '-'
     seeding_df['Sets'] = '-'
-    
+
     seeding_df['Link'] = '-'
-    
+
     for i in range(len(seeding_df)):
         gamer_tag = seeding_df.loc[i, 'Player']
         player_id = seeding_df.loc[i, 'Player ID']
@@ -198,7 +198,7 @@ def main(Phase_Id, Event_Name):
         # Progress Notes
         if (count % 10) == 0:
             print('    Finished Player: {}'.format(count))
-        
+
     con.close()
     print('Win Rates and Set Counts Collected')
 
@@ -206,7 +206,7 @@ def main(Phase_Id, Event_Name):
     t1 = t.time()
     tx = round((t1-t0),2)
     rate = round((tx/count),3)
-    
+
     print("""
     - - - - - - - - - - -
      Time: {} s
@@ -218,9 +218,9 @@ def main(Phase_Id, Event_Name):
 
     seeding_df = seeding_df.sort_values(by=['Win Rate', 'Sets'],
                  ascending=[False, False]).reset_index(drop=True)
-    
+
     UpdateGG(Update_Bracket, client, Phase_Id, seeding_df)
-    
+
 # Exports and Opens CSV Spreadsheet
     folder = os.getcwd() + '\\seeding\\'
     try:
@@ -233,9 +233,7 @@ def main(Phase_Id, Event_Name):
         seeding_df.to_csv(Seeding_File, index=False)
         os.startfile(Seeding_File)
     print('Task Complete')
-    
-###############################################################################    
+
+###############################################################################
 if __name__ == "__main__":
     main(Phase_Id, Event_Name)
-
-
