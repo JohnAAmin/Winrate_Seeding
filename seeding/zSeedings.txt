@@ -1,3 +1,0 @@
-All your seeded tournaments will be saved into this "seeding" folder.
-
-
