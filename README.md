@@ -8,8 +8,10 @@ There is a web based version of code created by L4st found [here](http://smashse
 tournaments.
 
 ### Requirements
+You will need Python 3.7 or greater, The Key Packages, Smashdata Database(s), and a Smash.gg authentication token (key).
 #### Software
 - Python 3.7+
+- A text editor / IDE (I recommend [Sublime Text 3](https://www.sublimetext.com/3))
 
  **Key packages**
   - Numpy == 1.19.1
@@ -32,10 +34,11 @@ tournaments.
 2. Download and install Python 3.7 or greater and the required libraries. For help, see ***Python Setup Guide*** below
 3. Download the Smashdata.gg Player Database (updated ~biweekly) and place in repository root folder
 4. Request and generate a smash.gg Token (Do not lose your key)
-5. Add your key to the **auth.yaml** file in the **key** folder and remove the "#" in front of the key
+5. Add your key to the **auth.yaml** file in the **key** folder and remove the "#" in front of the key. Follow the instructions on the file.
 6. Open **Winrate_Seeder.py** and enter a tourney *Phase_Id* and *Event_Name* in the *User Inputs* section
 7. Run the code. This will generate a .csv file in the **seeding** folder
-8. Use [Seed Uploader](https://gg-seed-upload.herokuapp.com/) to upload seeds
+8. Upload the CSV to google sheets and fill in the phase seed column.
+9. Use [Seed Uploader](https://gg-seed-upload.herokuapp.com/) to upload seeds
 
 ***
 
