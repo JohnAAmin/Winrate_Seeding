@@ -1,0 +1,5 @@
+Place the smashdata.gg databases in this "database" folder. The code supports:
+
+- melee_player_database.db
+- smash4_player_database.db
+- ultimate_player_database.db

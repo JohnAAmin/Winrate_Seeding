@@ -6,7 +6,5 @@ key/auth.yaml
 
 # Folders
 seeding/*.csv
+database/*.db
 testing/
-
-# Smashdata.GG Database
-*.db

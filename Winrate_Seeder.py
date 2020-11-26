@@ -2,7 +2,7 @@
 """
                                 Winrate Seeder
 @authors: J4m
-@version: 1.0
+@version: 2.0
 
 This code query's a Smash.gg Tournament corresponding to a given Phase Id.
 It takes all the entrants in that phase, grabbing Seed Number, Seeding Id,
@@ -22,7 +22,7 @@ USER INPUTS:
 ###############################################################################
 # USER INPUTS
 
-Phase_Id = 882778           # number 88####
+Phase_Id = 882809           # number 88####
 Event_Name = 'SSG_13'       # 'Your File Name'
 Update_Bracket = False      # True or False
 ###############################################################################
@@ -134,7 +134,7 @@ def Win_Rate(con, player_id, tag, zeros):
 
     return [Win_Rate, All, Link, zeros]
 #-----------------------------------------------------------------------------#
-def UpdateGG(update_bracket, client, phaseId, seeds):
+def Update_GG(update_bracket, client, phaseId, seeds):
         # Updates the Smash.gg player seeds
     if update_bracket:
         print('Seeds Assigned')
@@ -165,16 +165,59 @@ def UpdateGG(update_bracket, client, phaseId, seeds):
         print('NOT updating smash.gg')
 
 #-----------------------------------------------------------------------------#
+
+def Check_Type(client, phaseId):
+    'Checks if event is for Ultimate, Melee, or Smash4'
+    try:
+        game = client.execute('''
+                        query PhaseSeeds($phaseId: ID!) {
+                        phase(id:$phaseId){event{name type 
+                        videogame {id}}}}''',{"phaseId": phaseId})
+        gameData = js.loads(game)
+    except:
+        return (False, 'Bad API Key: Check Auth.yaml', '_') 
+    
+    try:
+        gameName = gameData['data']['phase']['event']['name']
+        gameType = gameData['data']['phase']['event']['type']
+        gameNumber = gameData['data']['phase']['event']['videogame']['id']
+        
+        if gameNumber == 1 and gameType == 1:
+            db = 'database/melee_player_database.db'
+        elif gameNumber == 3 and gameType == 1:
+            db = 'database/smash4_player_database.db'
+        elif gameNumber == 1386 and gameType == 1:
+            db = 'database/ultimate_player_database.db'
+        else:
+            return (False, 'Bad Phase: Must be Singles', '_')   
+        
+        return(True, gameName, db)
+    
+    except:
+        return (False, 'Bad Phase: Check Number', '_')   
+    
+#-----------------------------------------------------------------------------#
+
 def main(Phase_Id, Event_Name):
     'Runs all helper functions to produce seeding csv spreadsheet'
 
+
 # Starts API client and collects players from Phase Id
-    print("Collecting Entrants in Phase")
+    print("Checking API Key")
     client = Smash_Api()
+    
+    gameData = Check_Type(client, Phase_Id)
+    
+    if not gameData[0]:
+        print(gameData[1])
+        print('Exiting Seeder')
+        sys.exit(0)
+    
+    print("Collecting players in event: {}".format(gameData[1]))
     seeding_df = Tourney_Players(client, Phase_Id)
 
 # Specifies and opens Smashdata SQLite database
-    db = 'ultimate_player_database.db'
+    db = gameData[2]
     con= sqlite3.connect(db)
 
 # Adds Win Rate and Set Count to Dataframe
@@ -219,7 +262,7 @@ def main(Phase_Id, Event_Name):
     seeding_df = seeding_df.sort_values(by=['Win Rate', 'Sets'],
                  ascending=[False, False]).reset_index(drop=True)
 
-    UpdateGG(Update_Bracket, client, Phase_Id, seeding_df)
+    Update_GG(Update_Bracket, client, Phase_Id, seeding_df)
 
 # Exports and Opens CSV Spreadsheet
     folder = os.getcwd() + '\\seeding\\'
