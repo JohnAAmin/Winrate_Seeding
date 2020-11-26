@@ -22,8 +22,8 @@ USER INPUTS:
 ###############################################################################
 # USER INPUTS
 
-Phase_Id = 882809           # number 88####
-Event_Name = 'SSG_13'       # 'Your File Name'
+Phase_Id = 883778           # number 88####
+Event_Name = 'Peak_66'      # 'Your File Name'
 Update_Bracket = False      # True or False
 ###############################################################################
 # IMPORTS
@@ -104,10 +104,8 @@ def Tourney_Players(client, phaseId):
 
 #-----------------------------------------------------------------------------#
 
-def Win_Rate(con, player_id, tag, zeros):
+def Win_Rate(con, player_id, tag, zeros, base):
     'Searches Smashdata Database for Player Set Win-Rate'
-
-    base = 'https://smashdata.gg/smash/ultimate/player/'
 
     # Searches Smashdata SQLite database
     cur = con.cursor()
@@ -175,7 +173,7 @@ def Check_Type(client, phaseId):
                         videogame {id}}}}''',{"phaseId": phaseId})
         gameData = js.loads(game)
     except:
-        return (False, 'Bad API Key: Check Auth.yaml', '_') 
+        return (False, 'Bad API Key: Check Auth.yaml') 
     
     try:
         gameName = gameData['data']['phase']['event']['name']
@@ -184,17 +182,20 @@ def Check_Type(client, phaseId):
         
         if gameNumber == 1 and gameType == 1:
             db = 'database/melee_player_database.db'
+            base = 'https://smashdata.gg/smash/melee/player/'
         elif gameNumber == 3 and gameType == 1:
             db = 'database/smash4_player_database.db'
+            base = 'https://smashdata.gg/smash/4/player/'
         elif gameNumber == 1386 and gameType == 1:
             db = 'database/ultimate_player_database.db'
+            base = 'https://smashdata.gg/smash/ultimate/player/'
         else:
-            return (False, 'Bad Phase: Must be Singles', '_')   
+            return (False, 'Bad Phase: Must be Singles')   
         
-        return(True, gameName, db)
+        return(True, gameName, db, base)
     
     except:
-        return (False, 'Bad Phase: Check Number', '_')   
+        return (False, 'Bad Phase: Check Number')   
     
 #-----------------------------------------------------------------------------#
 
@@ -218,8 +219,9 @@ def main(Phase_Id, Event_Name):
 
 # Specifies and opens Smashdata SQLite database
     db = gameData[2]
+    base = gameData[3]
+    
     con= sqlite3.connect(db)
-
 # Adds Win Rate and Set Count to Dataframe
     print("Collecting Win Rates and Set Counts")
     t0 = t.time()
@@ -227,13 +229,12 @@ def main(Phase_Id, Event_Name):
     zeros = 0
     seeding_df['Win Rate'] = '-'
     seeding_df['Sets'] = '-'
-
     seeding_df['Link'] = '-'
 
     for i in range(len(seeding_df)):
         gamer_tag = seeding_df.loc[i, 'Player']
         player_id = seeding_df.loc[i, 'Player ID']
-        wr, sets, link, zeros = Win_Rate(con, player_id, gamer_tag, zeros)
+        wr, sets, link, zeros = Win_Rate(con, player_id, gamer_tag, zeros, base)
         seeding_df.loc[i, 'Win Rate'] = wr
         seeding_df.loc[i, 'Sets'] = sets
         seeding_df.loc[i, 'Link'] = link

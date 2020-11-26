@@ -29,10 +29,10 @@ tournaments.
 ### Winrate Seeder Setup:
 
 1. Clone or download this repository.
-2. Download and install Python 3.7 or greater and the required libraries. For help, see *Python Setup Guide* below
+2. Download and install Python 3.7 or greater and the required libraries. For help, see ***Python Setup Guide*** below
 3. Download the Smashdata.gg Player Database (updated ~biweekly) and place in repository root folder
 4. Request and generate a smash.gg Token (Do not lose your key)
-5. Add your key to the **auth.yaml** file in the **key** folder
+5. Add your key to the **auth.yaml** file in the **key** folder and remove the "#" in front of the key
 6. Open **Winrate_Seeder.py** and enter a tourney *Phase_Id* and *Event_Name* in the *User Inputs* section
 7. Run the code. This will generate a .csv file in the **seeding** folder
 8. Use [Seed Uploader](https://gg-seed-upload.herokuapp.com/) to upload seeds
